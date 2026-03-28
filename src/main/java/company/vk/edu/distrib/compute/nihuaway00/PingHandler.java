@@ -16,21 +16,17 @@ public class PingHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        var daoAvailable = entityDao.available();
+        boolean available = entityDao.available();
+        byte[] body = available
+                ? "{\"status\": \"ok\"}".getBytes()
+                : "{\"status\": \"not available\", \"desc\":\"entity dao not available\"}".getBytes();
+        int status = available ? 200 : 503;
 
-        if (daoAvailable) {
-            exchange.sendResponseHeaders(200, 0);
-            OutputStream os = exchange.getResponseBody();
-            os.write("{\"status\": \"ok\"}".getBytes());
-            os.close();
-            exchange.close();
-        } else {
-            exchange.sendResponseHeaders(503, 0);
-            OutputStream os = exchange.getResponseBody();
-            os.write("{\"status\": \"not available\", \"desc\":\"entity dao not available\"}".getBytes());
-            os.close();
-            exchange.close();
+        try (exchange) {
+            exchange.sendResponseHeaders(status, body.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body);
+            }
         }
-
     }
 }

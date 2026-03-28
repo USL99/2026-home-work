@@ -44,48 +44,41 @@ public class EntityHandler implements HttpHandler {
     public void handleGetEntity(HttpExchange exchange, Map<String, String> params) throws IOException {
         String id = params.get("id");
 
-        try {
+        try (exchange) {
             byte[] data = dao.get(id);
             exchange.sendResponseHeaders(200, data.length);
-            OutputStream os = exchange.getResponseBody();
-            os.write(data);
-            os.close();
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(data);
+            }
         } catch (NoSuchElementException err) {
             exchange.sendResponseHeaders(404, 0);
         } catch (IllegalArgumentException err) {
             exchange.sendResponseHeaders(400, 0);
         }
-
-        exchange.close();
     }
 
     public void handlePutEntity(HttpExchange exchange, Map<String, String> params) throws IOException {
         String id = params.get("id");
-        InputStream is = exchange.getRequestBody();
-        var data = is.readAllBytes();
-        is.close();
 
-        try {
-            dao.upsert(id, data);
-            exchange.sendResponseHeaders(201, 0);
-        } catch (IllegalArgumentException err) {
-            exchange.sendResponseHeaders(400, 0);
+        try (exchange; InputStream is = exchange.getRequestBody()) {
+            var data = is.readAllBytes();
+            try {
+                dao.upsert(id, data);
+                exchange.sendResponseHeaders(201, 0);
+            } catch (IllegalArgumentException err) {
+                exchange.sendResponseHeaders(400, 0);
+            }
         }
-
-        exchange.close();
-
     }
 
     public void handleDeleteEntity(HttpExchange exchange, Map<String, String> params) throws IOException {
         String id = params.get("id");
 
-        try {
+        try (exchange) {
             dao.delete(id);
             exchange.sendResponseHeaders(202, 0);
         } catch (IllegalArgumentException err) {
             exchange.sendResponseHeaders(400, 0);
         }
-
-        exchange.close();
     }
 }
