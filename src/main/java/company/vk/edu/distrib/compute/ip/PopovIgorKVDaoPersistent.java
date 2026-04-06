@@ -53,8 +53,7 @@ public class PopovIgorKVDaoPersistent implements Dao<byte[]> {
     }
 
     @Override
-    public void close() throws IOException {
-        checkActive(); // avoid double close
+    public void close() {
         active.set(false);
     }
 

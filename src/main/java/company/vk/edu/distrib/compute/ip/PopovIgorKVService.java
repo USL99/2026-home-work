@@ -152,12 +152,9 @@ public class PopovIgorKVService implements KVService {
         if (isRunning.compareAndSet(true, false)) {
             log.info("Stopping server on port {}...", port);
             server.stop(0);
-            try {
-                dao.close();
-            } catch (IOException e) {
-                log.error("Error during DAO closure", e);
-            }
             log.info("Server stopped.");
+            dao.close();
+            log.info("DAO closed.");
         }
     }
 }
