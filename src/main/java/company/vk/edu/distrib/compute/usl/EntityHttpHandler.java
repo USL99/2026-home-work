@@ -12,6 +12,12 @@ import java.util.NoSuchElementException;
 
 final class EntityHttpHandler implements HttpHandler {
     private static final String ENTITY_PATH = "/v0/entity";
+    private static final String ID_PARAMETER = "id";
+    private static final String GET_METHOD = "GET";
+    private static final String PUT_METHOD = "PUT";
+    private static final String DELETE_METHOD = "DELETE";
+    private static final String QUERY_PARAMETER_SEPARATOR = "&";
+    private static final byte[] EMPTY_BODY = new byte[0];
 
     private final Dao<byte[]> dao;
 
@@ -46,9 +52,9 @@ final class EntityHttpHandler implements HttpHandler {
 
     private void handleLocal(HttpExchange exchange, String key, byte[] requestBody) throws IOException {
         switch (exchange.getRequestMethod()) {
-            case "GET" -> ExchangeResponses.sendBody(exchange, 200, dao.get(key));
-            case "PUT" -> handlePut(exchange, key, requestBody);
-            case "DELETE" -> handleDelete(exchange, key);
+            case GET_METHOD -> ExchangeResponses.sendBody(exchange, 200, dao.get(key));
+            case PUT_METHOD -> handlePut(exchange, key, requestBody);
+            case DELETE_METHOD -> handleDelete(exchange, key);
             default -> ExchangeResponses.sendEmpty(exchange, 405);
         }
     }
@@ -65,9 +71,9 @@ final class EntityHttpHandler implements HttpHandler {
 
     private static byte[] readBody(HttpExchange exchange) throws IOException {
         return switch (exchange.getRequestMethod()) {
-            case "PUT" -> exchange.getRequestBody().readAllBytes();
-            case "GET", "DELETE" -> new byte[0];
-            default -> new byte[0];
+            case PUT_METHOD -> exchange.getRequestBody().readAllBytes();
+            case GET_METHOD, DELETE_METHOD -> EMPTY_BODY;
+            default -> EMPTY_BODY;
         };
     }
 
@@ -78,19 +84,8 @@ final class EntityHttpHandler implements HttpHandler {
         }
 
         String id = null;
-        for (String parameter : query.split("&")) {
-            int delimiterIndex = parameter.indexOf('=');
-            String rawName = delimiterIndex < 0 ? parameter : parameter.substring(0, delimiterIndex);
-            if (!"id".equals(URLDecoder.decode(rawName, StandardCharsets.UTF_8))) {
-                continue;
-            }
-
-            if (id != null) {
-                throw new IllegalArgumentException("Duplicate id query parameter");
-            }
-
-            String rawValue = delimiterIndex < 0 ? "" : parameter.substring(delimiterIndex + 1);
-            id = URLDecoder.decode(rawValue, StandardCharsets.UTF_8);
+        for (String parameter : query.split(QUERY_PARAMETER_SEPARATOR)) {
+            id = extractIdValue(parameter, id);
         }
 
         if (id == null || id.isEmpty()) {
@@ -98,5 +93,20 @@ final class EntityHttpHandler implements HttpHandler {
         }
 
         return id;
+    }
+
+    private static String extractIdValue(String parameter, String currentId) {
+        int delimiterIndex = parameter.indexOf('=');
+        String rawName = delimiterIndex < 0 ? parameter : parameter.substring(0, delimiterIndex);
+        if (!ID_PARAMETER.equals(URLDecoder.decode(rawName, StandardCharsets.UTF_8))) {
+            return currentId;
+        }
+
+        if (currentId != null) {
+            throw new IllegalArgumentException("Duplicate id query parameter");
+        }
+
+        String rawValue = delimiterIndex < 0 ? "" : parameter.substring(delimiterIndex + 1);
+        return URLDecoder.decode(rawValue, StandardCharsets.UTF_8);
     }
 }

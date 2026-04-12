@@ -11,6 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PersistentByteArrayDaoTest {
+    private static final String ALPHA_KEY = "alpha";
+    private static final String SPECIAL_KEY = "space key/with?chars";
+
     @TempDir
     Path tempDir;
 
@@ -19,25 +22,27 @@ class PersistentByteArrayDaoTest {
         Path storage = tempDir.resolve("storage");
         byte[] value = new byte[] {1, 2, 3};
 
-        PersistentByteArrayDao firstDao = new PersistentByteArrayDao(storage);
-        firstDao.upsert("alpha", value);
-        firstDao.close();
+        try (PersistentByteArrayDao firstDao = new PersistentByteArrayDao(storage)) {
+            firstDao.upsert(ALPHA_KEY, value);
+        }
 
-        PersistentByteArrayDao secondDao = new PersistentByteArrayDao(storage);
-        assertArrayEquals(value, secondDao.get("alpha"));
+        try (PersistentByteArrayDao secondDao = new PersistentByteArrayDao(storage)) {
+            assertArrayEquals(value, secondDao.get(ALPHA_KEY));
+        }
     }
 
     @Test
     void deletePersistsAcrossReopen() throws IOException {
         Path storage = tempDir.resolve("storage");
 
-        PersistentByteArrayDao firstDao = new PersistentByteArrayDao(storage);
-        firstDao.upsert("alpha", new byte[] {1});
-        firstDao.delete("alpha");
-        firstDao.close();
+        try (PersistentByteArrayDao firstDao = new PersistentByteArrayDao(storage)) {
+            firstDao.upsert(ALPHA_KEY, new byte[] {1});
+            firstDao.delete(ALPHA_KEY);
+        }
 
-        PersistentByteArrayDao secondDao = new PersistentByteArrayDao(storage);
-        assertThrows(NoSuchElementException.class, () -> secondDao.get("alpha"));
+        try (PersistentByteArrayDao secondDao = new PersistentByteArrayDao(storage)) {
+            assertThrows(NoSuchElementException.class, () -> secondDao.get(ALPHA_KEY));
+        }
     }
 
     @Test
@@ -45,11 +50,12 @@ class PersistentByteArrayDaoTest {
         Path storage = tempDir.resolve("storage");
         byte[] value = new byte[0];
 
-        PersistentByteArrayDao firstDao = new PersistentByteArrayDao(storage);
-        firstDao.upsert("space key/with?chars", value);
-        firstDao.close();
+        try (PersistentByteArrayDao firstDao = new PersistentByteArrayDao(storage)) {
+            firstDao.upsert(SPECIAL_KEY, value);
+        }
 
-        PersistentByteArrayDao secondDao = new PersistentByteArrayDao(storage);
-        assertArrayEquals(value, secondDao.get("space key/with?chars"));
+        try (PersistentByteArrayDao secondDao = new PersistentByteArrayDao(storage)) {
+            assertArrayEquals(value, secondDao.get(SPECIAL_KEY));
+        }
     }
 }

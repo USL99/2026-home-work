@@ -17,33 +17,34 @@ final class UslNodeServer {
     private static final String ENTITY_PATH = "/v0/entity";
 
     private final int port;
-    private final String endpoint;
+    private final String endpointUrl;
     private final Dao<byte[]> dao;
     private final StatusHttpHandler statusHandler = new StatusHttpHandler();
     private final EntityHttpHandler entityHandler;
     private final ReentrantLock lifecycleLock = new ReentrantLock();
 
     private HttpServer server;
+    private boolean started;
 
     UslNodeServer(int port, Dao<byte[]> dao) {
         this.port = port;
-        this.endpoint = endpoint(port);
+        this.endpointUrl = endpointUrl(port);
         this.dao = dao;
         this.entityHandler = new EntityHttpHandler(dao);
     }
 
-    static String endpoint(int port) {
+    static String endpointUrl(int port) {
         return "http://localhost:" + port;
     }
 
     String endpoint() {
-        return endpoint;
+        return endpointUrl;
     }
 
     void start() {
         lifecycleLock.lock();
         try {
-            if (server != null) {
+            if (started) {
                 return;
             }
 
@@ -53,9 +54,10 @@ final class UslNodeServer {
                 createdServer.createContext(ENTITY_PATH, entityHandler);
                 createdServer.start();
                 server = createdServer;
-                log.info("Node started on {}", endpoint);
+                started = true;
+                log.info("Node started on {}", endpointUrl);
             } catch (IOException e) {
-                throw new UncheckedIOException("Failed to start node on " + endpoint, e);
+                throw new UncheckedIOException("Failed to start node on " + endpointUrl, e);
             }
         } finally {
             lifecycleLock.unlock();
@@ -65,14 +67,14 @@ final class UslNodeServer {
     void stop() {
         lifecycleLock.lock();
         try {
-            if (server == null) {
+            if (!started) {
                 return;
             }
 
             server.stop(0);
-            server = null;
+            started = false;
             closeDao();
-            log.info("Node stopped on {}", endpoint);
+            log.info("Node stopped on {}", endpointUrl);
         } finally {
             lifecycleLock.unlock();
         }
@@ -82,7 +84,7 @@ final class UslNodeServer {
         try {
             dao.close();
         } catch (IOException e) {
-            log.warn("Failed to close dao for {}", endpoint, e);
+            log.warn("Failed to close dao for {}", endpointUrl, e);
         }
     }
 }

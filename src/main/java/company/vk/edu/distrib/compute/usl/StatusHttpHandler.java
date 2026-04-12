@@ -7,6 +7,7 @@ import java.io.IOException;
 
 final class StatusHttpHandler implements HttpHandler {
     private static final String STATUS_PATH = "/v0/status";
+    private static final String GET_METHOD = "GET";
 
     @Override
     @SuppressWarnings("PMD.UseTryWithResources")
@@ -17,7 +18,7 @@ final class StatusHttpHandler implements HttpHandler {
                 return;
             }
 
-            if (!"GET".equals(exchange.getRequestMethod())) {
+            if (!GET_METHOD.equals(exchange.getRequestMethod())) {
                 ExchangeResponses.sendEmpty(exchange, 405);
                 return;
             }
