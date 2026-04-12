@@ -17,7 +17,7 @@ final class UslNodeServer {
     private static final String ENTITY_PATH = "/v0/entity";
 
     private final int port;
-    private final String endpointUrl;
+    private final String localEndpointUrl;
     private final Dao<byte[]> dao;
     private final StatusHttpHandler statusHandler = new StatusHttpHandler();
     private final EntityHttpHandler entityHandler;
@@ -28,7 +28,7 @@ final class UslNodeServer {
 
     UslNodeServer(int port, Dao<byte[]> dao) {
         this.port = port;
-        this.endpointUrl = endpointUrl(port);
+        this.localEndpointUrl = endpointUrl(port);
         this.dao = dao;
         this.entityHandler = new EntityHttpHandler(dao);
     }
@@ -38,7 +38,7 @@ final class UslNodeServer {
     }
 
     String endpoint() {
-        return endpointUrl;
+        return localEndpointUrl;
     }
 
     void start() {
@@ -55,9 +55,9 @@ final class UslNodeServer {
                 createdServer.start();
                 server = createdServer;
                 started = true;
-                log.info("Node started on {}", endpointUrl);
+                log.info("Node started on {}", localEndpointUrl);
             } catch (IOException e) {
-                throw new UncheckedIOException("Failed to start node on " + endpointUrl, e);
+                throw new UncheckedIOException("Failed to start node on " + localEndpointUrl, e);
             }
         } finally {
             lifecycleLock.unlock();
@@ -74,7 +74,7 @@ final class UslNodeServer {
             server.stop(0);
             started = false;
             closeDao();
-            log.info("Node stopped on {}", endpointUrl);
+            log.info("Node stopped on {}", localEndpointUrl);
         } finally {
             lifecycleLock.unlock();
         }
@@ -84,7 +84,7 @@ final class UslNodeServer {
         try {
             dao.close();
         } catch (IOException e) {
-            log.warn("Failed to close dao for {}", endpointUrl, e);
+            log.warn("Failed to close dao for {}", localEndpointUrl, e);
         }
     }
 }
