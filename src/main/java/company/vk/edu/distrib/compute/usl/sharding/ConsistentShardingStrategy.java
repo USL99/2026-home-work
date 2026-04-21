@@ -11,7 +11,7 @@ public final class ConsistentShardingStrategy implements ShardingStrategy {
 
     private static final Comparator<Long> UNSIGNED_LONG_COMPARATOR = Long::compareUnsigned;
 
-    private final List<String> endpoints;
+    private final List<String> endpointUrls;
     private final NavigableMap<Long, String> ring;
 
     public ConsistentShardingStrategy(List<String> endpoints) {
@@ -25,7 +25,7 @@ public final class ConsistentShardingStrategy implements ShardingStrategy {
         if (virtualNodeCount <= 0) {
             throw new IllegalArgumentException("Virtual node count must be positive");
         }
-        this.endpoints = List.copyOf(endpoints);
+        this.endpointUrls = List.copyOf(endpoints);
         this.ring = new TreeMap<>(UNSIGNED_LONG_COMPARATOR);
         populateRing(virtualNodeCount);
     }
@@ -40,11 +40,11 @@ public final class ConsistentShardingStrategy implements ShardingStrategy {
 
     @Override
     public List<String> endpoints() {
-        return endpoints;
+        return endpointUrls;
     }
 
     private void populateRing(int virtualNodeCount) {
-        for (String endpoint : endpoints) {
+        for (String endpoint : endpointUrls) {
             for (int vnode = 0; vnode < virtualNodeCount; vnode++) {
                 long hash = HashSupport.hash64(endpoint, Integer.toString(vnode));
                 while (ring.putIfAbsent(hash, endpoint) != null) {

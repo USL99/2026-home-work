@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class RendezvousShardingStrategy implements ShardingStrategy {
-    private final List<String> endpoints;
+    private final List<String> endpointUrls;
 
     public RendezvousShardingStrategy(List<String> endpoints) {
         if (endpoints == null || endpoints.isEmpty()) {
             throw new IllegalArgumentException("Endpoints must not be empty");
         }
-        this.endpoints = List.copyOf(endpoints);
+        this.endpointUrls = List.copyOf(endpoints);
     }
 
     @Override
@@ -18,7 +18,7 @@ public final class RendezvousShardingStrategy implements ShardingStrategy {
         Objects.requireNonNull(key, "key");
         String selectedEndpoint = null;
         long selectedScore = 0;
-        for (String endpoint : endpoints) {
+        for (String endpoint : endpointUrls) {
             long currentScore = HashSupport.hash64(key, endpoint);
             if (selectedEndpoint == null || Long.compareUnsigned(currentScore, selectedScore) > 0) {
                 selectedEndpoint = endpoint;
@@ -30,6 +30,6 @@ public final class RendezvousShardingStrategy implements ShardingStrategy {
 
     @Override
     public List<String> endpoints() {
-        return endpoints;
+        return endpointUrls;
     }
 }

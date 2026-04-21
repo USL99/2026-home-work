@@ -76,20 +76,25 @@ public final class UslKVCluster implements KVCluster {
     ) {
         Map<String, UslNodeServer> result = new ConcurrentHashMap<>();
         for (int port : ports) {
-            try {
-                result.put(
-                    UslNodeServer.endpointUrl(port),
-                    new UslNodeServer(
-                        port,
-                        new PersistentByteArrayDao(StoragePaths.persistentDataDir(port)),
-                        shardingStrategy,
-                        httpClient
-                    )
-                );
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to create cluster node for port " + port, e);
-            }
+            result.put(UslNodeServer.endpointUrl(port), createNode(port, shardingStrategy, httpClient));
         }
         return Map.copyOf(result);
+    }
+
+    private static UslNodeServer createNode(
+        int port,
+        ShardingStrategy shardingStrategy,
+        HttpClient httpClient
+    ) {
+        try {
+            return new UslNodeServer(
+                port,
+                new PersistentByteArrayDao(StoragePaths.persistentDataDir(port)),
+                shardingStrategy,
+                httpClient
+            );
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to create cluster node for port " + port, e);
+        }
     }
 }
